@@ -65,8 +65,5 @@ logs/
 # Temporary files
 tmp/
 temp/
-hydrate.py
-ProjectPlan.md
-ProjectGoal.md
 RunServices.md
 dataset

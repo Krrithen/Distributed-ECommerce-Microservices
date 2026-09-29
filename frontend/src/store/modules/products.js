@@ -10,41 +10,70 @@ const apiClient = axios.create({
   },
 });
 
+const toErrorMessage = (err) =>
+  err.response?.data?.message || err.message || "An error occurred";
+
 export default {
   state: {
     productsList: [],
     loading: false,
     error: null,
+    product: null,
+    productLoading: false,
+    productError: null,
   },
   getters: {
     getProductsList: (state) => state.productsList,
     isLoading: (state) => state.loading,
     getError: (state) => state.error,
+    getProduct: (state) => state.product,
+    isProductLoading: (state) => state.productLoading,
+    getProductError: (state) => state.productError,
   },
   mutations: {
     setProductsList: (state, value) => (state.productsList = value),
     setLoading: (state, value) => (state.loading = value),
     setError: (state, value) => (state.error = value),
+    setProduct: (state, value) => (state.product = value),
+    setProductLoading: (state, value) => (state.productLoading = value),
+    setProductError: (state, value) => (state.productError = value),
   },
   actions: {
-    getProductsListApi: ({ commit }, { success, error }) => {
+    // GET /api/search?q= (search-service, backed by Elasticsearch)
+    searchProductsApi: ({ commit }, query = "") => {
       commit("setLoading", true);
       commit("setError", null);
 
-      apiClient
-        .get(API_CONFIG.ENDPOINTS.PRODUCTS)
+      return apiClient
+        .get(API_CONFIG.ENDPOINTS.SEARCH, { params: { q: query } })
         .then((response) => {
           commit("setProductsList", response.data);
-          commit("setLoading", false);
-          success && success(response.data);
+          return response.data;
         })
         .catch((err) => {
-          const errorMessage =
-            err.response?.data?.message || err.message || "An error occurred";
-          commit("setError", errorMessage);
-          commit("setLoading", false);
-          error && error(err);
-        });
+          commit("setProductsList", []);
+          commit("setError", toErrorMessage(err));
+          throw err;
+        })
+        .finally(() => commit("setLoading", false));
+    },
+    // GET /api/products/{id} (catalog-service, backed by MongoDB)
+    fetchProductApi: ({ commit }, productId) => {
+      commit("setProductLoading", true);
+      commit("setProductError", null);
+      commit("setProduct", null);
+
+      return apiClient
+        .get(API_CONFIG.ENDPOINTS.PRODUCT(productId))
+        .then((response) => {
+          commit("setProduct", response.data);
+          return response.data;
+        })
+        .catch((err) => {
+          commit("setProductError", toErrorMessage(err));
+          throw err;
+        })
+        .finally(() => commit("setProductLoading", false));
     },
   },
 };

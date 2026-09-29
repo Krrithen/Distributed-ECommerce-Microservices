@@ -2,13 +2,13 @@ package com.example.catalog.service.impl;
 
 import com.example.catalog.entity.Product;
 import com.example.catalog.event.ProductCreatedEvent;
+import com.example.catalog.exception.NotFoundException;
 import com.example.catalog.repository.ProductRepository;
 import com.example.catalog.service.CatalogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,7 +25,6 @@ public class CatalogServiceImpl implements CatalogService {
     private static final String TOPIC_PRODUCT_EVENTS = "product-events";
 
     @Override
-    @Transactional
     public Product createProduct(Product product) {
         log.info("Creating product: {}", product.getName());
         
@@ -51,7 +50,7 @@ public class CatalogServiceImpl implements CatalogService {
     @Override
     public Product getProduct(String id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("Product not found with id: " + id));
     }
 
     @Override

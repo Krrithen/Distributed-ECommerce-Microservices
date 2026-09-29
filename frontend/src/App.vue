@@ -10,15 +10,6 @@
         <div class="nav-menu">
           <router-link to="/" class="nav-link"> Home </router-link>
           <router-link to="/products" class="nav-link"> Products </router-link>
-          <router-link to="/cart" class="nav-link"> Cart </router-link>
-          <router-link to="/account" class="nav-link"> Account </router-link>
-        </div>
-
-        <div class="nav-actions">
-          <router-link to="/login" class="btn btn-outline"> Login </router-link>
-          <router-link to="/register" class="btn btn-primary">
-            Sign Up
-          </router-link>
         </div>
       </nav>
     </header>
@@ -124,49 +115,6 @@
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-/* Action Buttons */
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  text-decoration: none;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-}
-
-.btn-outline {
-  color: #667eea;
-  border-color: #667eea;
-  background: transparent;
-}
-
-.btn-outline:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
 /* Main Content */
 .main-content {
   min-height: calc(100vh - 80px);
@@ -189,11 +137,6 @@
     font-size: 0.9rem;
   }
 
-  .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-  }
-
   .brand-text {
     font-size: 1.25rem;
   }
@@ -204,10 +147,6 @@
     flex-direction: column;
     width: 100%;
     order: 3;
-  }
-
-  .nav-actions {
-    order: 2;
   }
 
   .nav-brand {

@@ -6,8 +6,6 @@ import com.example.orders.repository.OrderRepository;
 import com.example.orders.service.OrdersService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +20,6 @@ public class OrdersServiceImpl implements OrdersService {
 
     // Dependencies are final and injected via constructor (Standard Big Tech Practice)
     private final OrderRepository orderRepository;
-    private final JavaMailSender mailSender;
 
     @Override
     @Transactional
@@ -86,22 +83,6 @@ public class OrdersServiceImpl implements OrdersService {
     public Order getOrderById(String orderId) {
         log.info("Retrieving order by ID: {}", orderId);
         return orderRepository.findByOrderId(orderId).orElse(null);
-    }
-
-    @Override
-    public void sendEmail(String to, String subject, String body) {
-        log.info("Sending email to: {}", to);
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
-            mailSender.send(message);
-        } catch (Exception e) {
-            log.error("Failed to send email to: {}", to, e);
-            // Consider if you really want to crash the whole transaction if an email fails
-            throw new RuntimeException("Failed to send email", e); 
-        }
     }
 
     @Override

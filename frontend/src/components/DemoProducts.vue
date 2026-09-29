@@ -2,33 +2,31 @@
   <div class="products-page">
     <!-- Header Section -->
     <div class="products-header">
-      <h1>Our Products</h1>
-      <p>Discover amazing products at great prices</p>
+      <h1>Products</h1>
+      <p>Results come from GET /api/search (search-service, Elasticsearch)</p>
     </div>
 
-    <!-- Search and Filter Section -->
+    <!-- Search and Sort Section -->
     <div class="search-filter-section">
       <div class="search-container">
-        <div class="search-input-wrapper">
+        <form class="search-input-wrapper" @submit.prevent="performSearch">
           <input
             v-model="searchinput"
             type="text"
             placeholder="Search products..."
             class="search-input"
-            @input="performSearch"
           />
-          <button class="search-button" @click="performSearch">Search</button>
-        </div>
+          <button type="submit" class="search-button">Search</button>
+        </form>
       </div>
 
       <div class="filter-section">
         <div class="filter-group">
           <label>Sort by:</label>
-          <select v-model="sortBy" @change="sortProducts" class="filter-select">
+          <select v-model="sortBy" class="filter-select">
             <option value="name">Name</option>
             <option value="price-low">Price: Low to High</option>
             <option value="price-high">Price: High to Low</option>
-            <option value="category">Category</option>
           </select>
         </div>
       </div>
@@ -36,107 +34,44 @@
 
     <!-- Products Grid -->
     <div class="products-container">
-      <div v-if="isLoading && !showBackendUnavailable" class="loading-state">
+      <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
         <p>Loading products...</p>
       </div>
 
-      <div v-else-if="showBackendUnavailable" class="backend-unavailable">
-        <div class="backend-icon">!</div>
-        <h3>Store Currently Unavailable</h3>
-        <p>The product service is temporarily down.</p>
-        <p>Please try again later or contact support if the issue persists.</p>
-        <button @click="retryLoad" class="retry-button">Try Again</button>
-      </div>
-
       <div v-else-if="getError" class="error-state">
         <div class="error-icon">!</div>
-        <h3>Oops! Something went wrong</h3>
+        <h3>Search request failed</h3>
         <p>{{ getError }}</p>
-        <button @click="retryLoad" class="retry-button">Try Again</button>
+        <button @click="performSearch" class="retry-button">Try Again</button>
       </div>
 
-      <div v-else-if="filteredProducts.length === 0" class="no-products">
+      <div v-else-if="sortedProducts.length === 0" class="no-products">
         <div class="no-products-icon">?</div>
         <h3>No products found</h3>
-        <p>Try adjusting your search or filters</p>
-        <button @click="clearFilters" class="clear-filters-button">
-          Clear Filters
+        <p>Try a different search term</p>
+        <button @click="clearSearch" class="clear-filters-button">
+          Clear Search
         </button>
       </div>
 
       <div v-else class="products-grid">
         <div
-          v-for="product in filteredProducts"
+          v-for="product in sortedProducts"
           :key="product.id"
           class="product-card"
           @click="productSelected(product)"
         >
-          <div class="product-image-container">
-            <img
-              :src="product.image"
-              :alt="product.productName"
-              class="product-image"
-            />
-            <div class="product-overlay">
-              <button
-                class="quick-view-button"
-                @click.stop="productSelected(product)"
-              >
-                Quick View
-              </button>
-            </div>
-          </div>
-
           <div class="product-info">
-            <h3 class="product-name">{{ product.productName }}</h3>
-            <p class="product-category">{{ product.category }}</p>
+            <h3 class="product-name">{{ product.name }}</h3>
             <p class="product-description">{{ product.description }}</p>
 
             <div class="product-footer">
-              <div class="price-section">
-                <span class="product-price">${{ product.price }}</span>
-                <span
-                  class="product-stock"
-                  :class="{ 'low-stock': product.productQuantity < 10 }"
-                >
-                  {{ product.productQuantity }} in stock
-                </span>
-              </div>
-
-              <div class="product-actions">
-                <button
-                  class="add-to-cart-button"
-                  @click.stop="addToCart(product)"
-                >
-                  Add to Cart
-                </button>
-              </div>
+              <span class="product-price">${{ product.price }}</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Pagination (if needed) -->
-    <div v-if="showPagination" class="pagination">
-      <button
-        class="pagination-button"
-        :disabled="currentPage === 1"
-        @click="previousPage"
-      >
-        Previous
-      </button>
-      <span class="pagination-info">
-        Page {{ currentPage }} of {{ totalPages }}
-      </span>
-      <button
-        class="pagination-button"
-        :disabled="currentPage === totalPages"
-        @click="nextPage"
-      >
-        Next
-      </button>
     </div>
   </div>
 </template>
@@ -145,142 +80,50 @@ import { mapActions, mapGetters } from "vuex";
 
 export default {
   name: "DemoProducts",
+  data() {
+    return {
+      searchinput: "",
+      sortBy: "name",
+    };
+  },
   computed: {
     ...mapGetters(["getProductsList", "isLoading", "getError"]),
-    filteredProducts() {
-      let products = [...this.productsList];
+    // Filtering happens server-side in the search call; only sort here.
+    sortedProducts() {
+      const products = [...this.getProductsList];
 
-      // Apply search filter
-      if (this.searchinput.trim()) {
-        products = products.filter(
-          (product) =>
-            product.productName
-              .toLowerCase()
-              .includes(this.searchinput.toLowerCase().trim()) ||
-            product.category
-              .toLowerCase()
-              .includes(this.searchinput.toLowerCase().trim()) ||
-            product.description
-              .toLowerCase()
-              .includes(this.searchinput.toLowerCase().trim())
-        );
-      }
-
-      // Apply sorting
       switch (this.sortBy) {
         case "name":
-          products.sort((a, b) => a.productName.localeCompare(b.productName));
+          products.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
           break;
         case "price-low":
-          products.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+          products.sort((a, b) => a.price - b.price);
           break;
         case "price-high":
-          products.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
-          break;
-        case "category":
-          products.sort((a, b) => a.category.localeCompare(b.category));
+          products.sort((a, b) => b.price - a.price);
           break;
       }
 
       return products;
     },
-    totalPages() {
-      return Math.ceil(this.filteredProducts.length / this.itemsPerPage);
-    },
-    showPagination() {
-      return this.filteredProducts.length > this.itemsPerPage;
-    },
   },
   methods: {
-    ...mapActions(["getProductsListApi"]),
+    ...mapActions(["searchProductsApi"]),
     productSelected(product) {
       this.$router.push(`/product/${product.id}`);
     },
     performSearch() {
-      // Search is handled by computed property filteredProducts
-    },
-    sortProducts() {
-      // Sorting is handled by computed property filteredProducts
-    },
-    addToCart(product) {
-      // TODO: Implement add to cart functionality
-      console.log("Adding to cart:", product);
-      // You can emit an event or call a Vuex action here
-    },
-    retryLoad() {
-      this.showBackendUnavailable = false;
-
-      // Set timeout again
-      this.loadingTimeout = setTimeout(() => {
-        if (this.isLoading) {
-          this.showBackendUnavailable = true;
-        }
-      }, 5000);
-
-      this.$store.dispatch("getProductsListApi", {
-        success: () => {
-          clearTimeout(this.loadingTimeout);
-          this.productsList = this.getProductsList;
-          this.showBackendUnavailable = false;
-        },
-        error: (err) => {
-          clearTimeout(this.loadingTimeout);
-          console.error("Error loading products:", err);
-          this.showBackendUnavailable = true;
-        },
+      this.searchProductsApi(this.searchinput.trim()).catch(() => {
+        // Error message is stored in Vuex and rendered by the template
       });
     },
-    clearFilters() {
+    clearSearch() {
       this.searchinput = "";
-      this.sortBy = "name";
-    },
-    previousPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
+      this.performSearch();
     },
   },
   created() {
-    // Set a timeout to detect if backend is not responding
-    this.loadingTimeout = setTimeout(() => {
-      if (this.isLoading) {
-        this.showBackendUnavailable = true;
-      }
-    }, 5000); // 5 seconds timeout
-
-    this.$store.dispatch("getProductsListApi", {
-      success: () => {
-        clearTimeout(this.loadingTimeout);
-        this.productsList = this.getProductsList;
-        this.showBackendUnavailable = false;
-      },
-      error: (err) => {
-        clearTimeout(this.loadingTimeout);
-        console.error("Error loading products:", err);
-        this.showBackendUnavailable = true;
-      },
-    });
-  },
-  beforeDestroy() {
-    if (this.loadingTimeout) {
-      clearTimeout(this.loadingTimeout);
-    }
-  },
-  data() {
-    return {
-      searchinput: "",
-      productsList: [],
-      sortBy: "name",
-      currentPage: 1,
-      itemsPerPage: 12,
-      showBackendUnavailable: false,
-      loadingTimeout: null,
-    };
+    this.performSearch();
   },
 };
 </script>
@@ -310,7 +153,7 @@ export default {
 }
 
 .products-header p {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   opacity: 0.9;
 }
 
@@ -432,34 +275,6 @@ export default {
   font-size: 18px;
 }
 
-/* Backend Unavailable State */
-.backend-unavailable {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 12px;
-}
-
-.backend-icon {
-  font-size: 48px;
-  margin-bottom: 20px;
-}
-
-.backend-unavailable h3 {
-  color: #0369a1;
-  margin-bottom: 10px;
-}
-
-.backend-unavailable p {
-  color: #666;
-  margin-bottom: 10px;
-}
-
 /* Error State */
 .error-state {
   display: flex;
@@ -566,57 +381,6 @@ export default {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.product-image-container {
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-}
-
-.product-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.product-card:hover .product-image {
-  transform: scale(1.05);
-}
-
-.product-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.product-card:hover .product-overlay {
-  opacity: 1;
-}
-
-.quick-view-button {
-  padding: 10px 20px;
-  background: white;
-  color: #2c3e50;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.quick-view-button:hover {
-  background: #667eea;
-  color: white;
-}
-
 /* Product Info */
 .product-info {
   padding: 20px;
@@ -628,15 +392,6 @@ export default {
   color: #2c3e50;
   margin-bottom: 8px;
   line-height: 1.3;
-}
-
-.product-category {
-  color: #667eea;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .product-description {
@@ -657,81 +412,10 @@ export default {
   align-items: center;
 }
 
-.price-section {
-  display: flex;
-  flex-direction: column;
-}
-
 .product-price {
   font-size: 1.3rem;
   font-weight: 700;
   color: #2c3e50;
-}
-
-.product-stock {
-  font-size: 0.8rem;
-  color: #666;
-}
-
-.product-stock.low-stock {
-  color: #dc2626;
-  font-weight: 600;
-}
-
-.product-actions {
-  margin-left: 16px;
-}
-
-.add-to-cart-button {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.add-to-cart-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin-top: 40px;
-}
-
-.pagination-button {
-  padding: 10px 20px;
-  background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.pagination-button:hover:not(:disabled) {
-  background: #667eea;
-  color: white;
-}
-
-.pagination-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination-info {
-  color: #666;
-  font-weight: 600;
 }
 
 /* Responsive Design */
@@ -761,30 +445,11 @@ export default {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 16px;
   }
-
-  .product-footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .product-actions {
-    margin-left: 0;
-  }
-
-  .add-to-cart-button {
-    width: 100%;
-  }
 }
 
 @media (max-width: 480px) {
   .products-grid {
     grid-template-columns: 1fr;
-  }
-
-  .pagination {
-    flex-direction: column;
-    gap: 10px;
   }
 }
 </style>

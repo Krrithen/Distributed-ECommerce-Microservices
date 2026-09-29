@@ -35,13 +35,10 @@ public class CatalogGrpcService extends CatalogServiceGrpc.CatalogServiceImplBas
 
     @Override
     public void getProduct(GetProductRequest request, StreamObserver<ProductResponse> responseObserver) {
-        try {
-            Product product = catalogService.getProduct(request.getProductId());
-            responseObserver.onNext(mapToResponse(product));
-            responseObserver.onCompleted();
-        } catch (Exception e) {
-            responseObserver.onError(e);
-        }
+        // Exceptions propagate to GrpcExceptionAdvice, which maps them to gRPC status codes
+        Product product = catalogService.getProduct(request.getProductId());
+        responseObserver.onNext(mapToResponse(product));
+        responseObserver.onCompleted();
     }
 
     @Override

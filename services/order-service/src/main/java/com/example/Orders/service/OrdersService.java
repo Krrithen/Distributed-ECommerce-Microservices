@@ -12,6 +12,5 @@ public interface OrdersService {
     Order addOrderProducts(List<OrderItem> orderItems, String userId);
     Order getOrdersDetails(String userId);
     Order getOrderById(String orderId);
-    void sendEmail(String to, String subject, String body);
     List<Order> getOrderHistory(String userId);
 }

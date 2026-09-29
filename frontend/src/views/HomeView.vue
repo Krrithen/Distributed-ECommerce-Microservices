@@ -1,25 +1,25 @@
 <template>
   <div class="home">
     <div class="hero-section">
-      <h1>Welcome to Aurora Marketplace</h1>
-      <p>Discover amazing products at great prices</p>
-      <router-link to="/products" class="cta-button">Shop Now</router-link>
+      <h1>Aurora Marketplace demo UI</h1>
+      <p>A thin browsing client for the API gateway on port 8081</p>
+      <router-link to="/products" class="cta-button">Browse products</router-link>
     </div>
 
     <div class="features">
-      <h2>Why Choose Aurora?</h2>
+      <h2>What this UI calls</h2>
       <div class="feature-grid">
         <div class="feature">
-          <h3>Fast Delivery</h3>
-          <p>Quick and reliable shipping to your doorstep</p>
+          <h3>GET /api/search?q=</h3>
+          <p>Product list and search, served by search-service (Elasticsearch)</p>
         </div>
         <div class="feature">
-          <h3>Secure Payment</h3>
-          <p>Safe and encrypted payment processing</p>
+          <h3>GET /api/products/{id}</h3>
+          <p>Product detail, served by catalog-service (MongoDB)</p>
         </div>
         <div class="feature">
-          <h3>Easy Returns</h3>
-          <p>Hassle-free return policy</p>
+          <h3>Not implemented</h3>
+          <p>No cart, checkout, account or login. Orders are API-only.</p>
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 package com.example.auroramarketplace.exception;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -7,7 +9,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
@@ -37,16 +38,40 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(ResourceAccessException.class)
-    public ResponseEntity<ErrorResponse> handleServiceUnavailable(ResourceAccessException ex, WebRequest request) {
-        log.error("Service unavailable: {}", ex.getMessage());
+    @ExceptionHandler(StatusRuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleGrpcStatus(StatusRuntimeException ex) {
+        Status status = ex.getStatus();
+        HttpStatus httpStatus = toHttpStatus(status.getCode());
+
+        String message;
+        if (httpStatus.is4xxClientError()) {
+            // Client errors carry a description meant for the caller (e.g. "Product not found with id: x")
+            log.warn("gRPC {}: {}", status.getCode(), status.getDescription());
+            message = status.getDescription() != null ? status.getDescription() : httpStatus.getReasonPhrase();
+        } else {
+            // Server-side failures may carry internal details, so don't echo the description
+            log.error("gRPC {}: {}", status.getCode(), status.getDescription(), ex);
+            message = httpStatus.getReasonPhrase();
+        }
+
         ErrorResponse errorResponse = new ErrorResponse(
-            "SERVICE_UNAVAILABLE",
-            "External service is currently unavailable",
+            status.getCode().name(),
+            message,
             null,
             LocalDateTime.now()
         );
-        return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+        return new ResponseEntity<>(errorResponse, httpStatus);
+    }
+
+    static HttpStatus toHttpStatus(Status.Code code) {
+        return switch (code) {
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case INVALID_ARGUMENT -> HttpStatus.BAD_REQUEST;
+            case FAILED_PRECONDITION -> HttpStatus.CONFLICT;
+            case UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+            case DEADLINE_EXCEEDED -> HttpStatus.GATEWAY_TIMEOUT;
+            default -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
